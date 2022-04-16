@@ -1,0 +1,56 @@
+version: '3.8'
+
+networks:
+  inception:
+    name: inception                           # hay que darle nombre porque si no lo pone por defecto
+
+volumes:
+  db:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/jgalian-/data/mariadb        # la ruta en el host
+  wp:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/jgalian-/data/wordpress      # la ruta en el host
+
+services:
+  nginx:
+    build: requirements/nginx
+    image: nginx
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:                               # marca dependencias para establecer el orden de arranque
+      - wordpress
+    networks:
+      - inception
+    ports:
+      - 443:443
+    volumes:
+      - wp:/var/www/html                      # el nombre del volumen definido arriba y la ruta de mapeo en el contenedor
+
+  mariadb:
+    build: requirements/mariadb
+    image: mariadb
+    container_name: mariadb
+    restart: unless-stopped
+    networks:
+      - inception
+    volumes:
+      - db:/var/lib/mysql                     # el nombre del volumen definido arriba y la ruta de mapeo en el contenedor
+
+  wordpress:
+    build: requirements/wordpress
+    image: wordpress
+    container_name: wordpress
+    restart: unless-stopped
+    depends_on:                               # marca dependencias para establecer el orden de arranque
+      - mariadb
+    networks:
+      - inception
+    volumes:
+      - wp:/var/www/html                      # el nombre del volumen definido arriba y la ruta de mapeo en el contenedor
+    env_file:
+      - .env
